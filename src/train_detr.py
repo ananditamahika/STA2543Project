@@ -5,7 +5,17 @@ from torch.utils.data import DataLoader
 from src.dataset import YoloFishDataset
 from src.models.detr_builder import build_detr_model
 from tqdm import tqdm
-from src.train_utils import yolo_to_coco_format  # optionally move this helper to train_utils.py
+
+def yolo_to_coco_format(yolo_boxes, image_size):
+    boxes = []
+    for box in yolo_boxes:
+        _, xc, yc, w, h = box.tolist()
+        x_min = (xc - w / 2) * image_size
+        y_min = (yc - h / 2) * image_size
+        width = w * image_size
+        height = h * image_size
+        boxes.append([x_min, y_min, width, height])
+    return boxes
 
 def train_detr(train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir,
                epochs=20, lr=1e-4, img_size=640, weight_path=None, save_path="weights/detr_finetuned.pth"):
