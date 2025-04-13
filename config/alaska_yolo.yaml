@@ -1,0 +1,4 @@
+train: data/alaska/split/train/images
+val: data/alaska/split/val/images
+nc: 1
+names: ['fish']

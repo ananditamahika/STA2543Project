@@ -1,0 +1,7 @@
+# config/ontario_yolo.yaml
+
+train: ../data/ontario/split/train/images
+val: ../data/ontario/split/val/images
+
+nc: 1  # number of classes
+names: ['fish']
