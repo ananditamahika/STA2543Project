@@ -4,42 +4,34 @@ import torch
 from torch.utils.data import DataLoader
 from src.dataset import YoloFishDataset
 from src.models.detr_builder import build_detr_model
-from transformers import DetrImageProcessor
-import os
 from tqdm import tqdm
+from src.train_utils import yolo_to_coco_format  # optionally move this helper to train_utils.py
 
-def yolo_to_coco_format(yolo_boxes, image_size):
+def train_detr(train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir,
+               epochs=20, lr=1e-4, img_size=640, weight_path=None, save_path="weights/detr_finetuned.pth"):
     """
-    Converts YOLO format boxes to COCO-style format:
-    - YOLO: [x_center, y_center, width, height] (all relative)
-    - COCO: [x_min, y_min, width, height] (absolute pixels)
-    """
-    boxes = []
-    for box in yolo_boxes:
-        _, xc, yc, w, h = box.tolist()  # Ignore class id
-        x_min = (xc - w / 2) * image_size
-        y_min = (yc - h / 2) * image_size
-        width = w * image_size
-        height = h * image_size
-        boxes.append([x_min, y_min, width, height])
-    return boxes
+    Fine-tunes or trains DETR model using HuggingFace Transformers.
+    Supports loading from a pretrained checkpoint.
 
-def train_detr(train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir, epochs=20, lr=1e-4, img_size=640):
-    """
-    Fine-tunes DETR model on fish sonar dataset using HuggingFace Transformers.
+    Args:
+        weight_path (str): Optional path to pretrained .pth weights.
+        save_path (str): Where to save the fine-tuned weights.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Initialize dataset and loader
+    # Load data
     train_dataset = YoloFishDataset(train_img_dir, train_lbl_dir, img_size=img_size)
     val_dataset = YoloFishDataset(val_img_dir, val_lbl_dir, img_size=img_size)
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=4)
 
-    # Load model and processor
+    # Build model
     model, processor, optimizer = build_detr_model(num_classes=2, lr=lr)
+    if weight_path:
+        model.load_state_dict(torch.load(weight_path))
+        print(f"[INFO] Loaded pretrained weights from {weight_path}")
     model.to(device)
 
+    # Training loop
     model.train()
     for epoch in range(epochs):
         total_loss = 0.0
@@ -50,33 +42,27 @@ def train_detr(train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir, epochs=20
             targets = []
 
             for i in range(len(batch['image'])):
-                image = batch['image'][i].squeeze(0).numpy()  # shape: [H, W]
-                image_3ch = torch.tensor([image, image, image])  # to 3-channel
+                image = batch['image'][i].squeeze(0).numpy()
+                image_3ch = torch.tensor([image, image, image])
                 pixel_values.append(image_3ch)
 
                 boxes = batch['labels'][i]
                 if len(boxes) == 0:
-                    target = {"class_labels": torch.empty(0, dtype=torch.long),
-                              "boxes": torch.empty((0, 4), dtype=torch.float)}
+                    targets.append({
+                        "class_labels": torch.empty(0, dtype=torch.long),
+                        "boxes": torch.empty((0, 4), dtype=torch.float)
+                    })
                 else:
-                    boxes_coco = yolo_to_coco_format(boxes, image_size=img_size)
-                    target = {
-                        "class_labels": torch.zeros(len(boxes), dtype=torch.long),  # all 'fish' = class 0
-                        "boxes": torch.tensor(boxes_coco, dtype=torch.float)
-                    }
-                targets.append(target)
+                    coco_boxes = yolo_to_coco_format(boxes, img_size)
+                    targets.append({
+                        "class_labels": torch.zeros(len(boxes), dtype=torch.long),
+                        "boxes": torch.tensor(coco_boxes, dtype=torch.float)
+                    })
 
-            # Process inputs using DetrImageProcessor
             inputs = processor(images=pixel_values, return_tensors="pt")
             inputs["pixel_values"] = inputs["pixel_values"].to(device)
-
-            # Prepare labels in processor-compatible format
-            target_inputs = []
-            for t in targets:
-                target_inputs.append({
-                    "class_labels": t["class_labels"].to(device),
-                    "boxes": t["boxes"].to(device)
-                })
+            target_inputs = [{"class_labels": t["class_labels"].to(device),
+                              "boxes": t["boxes"].to(device)} for t in targets]
 
             outputs = model(**inputs, labels=target_inputs)
             loss = outputs.loss
@@ -88,5 +74,5 @@ def train_detr(train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir, epochs=20
 
         print(f"Epoch Loss: {total_loss:.4f}")
 
-    torch.save(model.state_dict(), "weights/detr_finetuned.pth")
-    print("[INFO] DETR model saved to weights/detr_finetuned.pth")
+    torch.save(model.state_dict(), save_path)
+    print(f"[INFO] DETR model saved to {save_path}")
