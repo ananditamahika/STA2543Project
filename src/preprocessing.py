@@ -56,31 +56,40 @@ def copy_labels(label_dir, frame_dir, output_label_dir):
             shutil.copy(label_file, os.path.join(output_label_dir, base + ".txt"))
 
 def split_dataset(image_dir, label_dir, output_dir, val_ratio=0.2, seed=42):
-    """
-    Splits image-label pairs into training and validation sets.
-
-    Args:
-        image_dir (str): Path to image directory.
-        label_dir (str): Path to YOLO label directory.
-        output_dir (str): Root output directory.
-        val_ratio (float): Proportion of validation data.
-    """
     import os
     import shutil
     import random
 
+    print(f"\n[INFO] Preparing dataset split from:")
+    print(f"       Images: {image_dir}")
+    print(f"       Labels: {label_dir}")
+
     random.seed(seed)
-    image_files = [f for f in os.listdir(image_dir) if f.endswith(".png") or f.endswith(".jpg")]
-    image_files = [f for f in image_files if os.path.exists(os.path.join(label_dir, os.path.splitext(f)[0] + ".txt"))]
 
-    random.shuffle(image_files)
+    # 1. Get image files (only those with matching .txt labels)
+    image_files = [f for f in os.listdir(image_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    matched_images = []
+    for f in image_files:
+        label_name = os.path.splitext(f)[0] + ".txt"
+        if os.path.exists(os.path.join(label_dir, label_name)):
+            matched_images.append(f)
 
-    val_count = int(len(image_files) * val_ratio)
+    print(f"[INFO] Matched image-label pairs: {len(matched_images)}")
+
+    if len(matched_images) == 0:
+        print("[ERROR] No matched files found. Exiting.")
+        return
+
+    # 2. Shuffle + split
+    random.shuffle(matched_images)
+    val_count = int(len(matched_images) * val_ratio)
+
     splits = {
-        'train': image_files[val_count:],
-        'val': image_files[:val_count]
+        "train": matched_images[val_count:],
+        "val": matched_images[:val_count]
     }
 
+    # 3. Save
     for split in splits:
         img_out = os.path.join(output_dir, split, "images")
         lbl_out = os.path.join(output_dir, split, "labels")
@@ -89,7 +98,8 @@ def split_dataset(image_dir, label_dir, output_dir, val_ratio=0.2, seed=42):
 
         for fname in splits[split]:
             shutil.copy(os.path.join(image_dir, fname), os.path.join(img_out, fname))
-            label_fname = os.path.splitext(fname)[0] + ".txt"
-            shutil.copy(os.path.join(label_dir, label_fname), os.path.join(lbl_out, label_fname))
+            label_file = os.path.splitext(fname)[0] + ".txt"
+            shutil.copy(os.path.join(label_dir, label_file), os.path.join(lbl_out, label_file))
 
         print(f"[INFO] {split.capitalize()} set: {len(splits[split])} images")
+
