@@ -60,13 +60,19 @@ def split_dataset(image_dir, label_dir, output_dir, val_ratio=0.2, seed=42):
     Splits image-label pairs into training and validation sets.
 
     Args:
-        image_dir (str): Path to PNG image directory.
+        image_dir (str): Path to image directory.
         label_dir (str): Path to YOLO label directory.
-        output_dir (str): Root output directory (contains 'train' and 'val').
-        val_ratio (float): Proportion of data to use for validation.
+        output_dir (str): Root output directory.
+        val_ratio (float): Proportion of validation data.
     """
+    import os
+    import shutil
+    import random
+
     random.seed(seed)
-    image_files = [f for f in os.listdir(image_dir) if f.endswith(".png")]
+    image_files = [f for f in os.listdir(image_dir) if f.endswith(".png") or f.endswith(".jpg")]
+    image_files = [f for f in image_files if os.path.exists(os.path.join(label_dir, os.path.splitext(f)[0] + ".txt"))]
+
     random.shuffle(image_files)
 
     val_count = int(len(image_files) * val_ratio)
@@ -87,4 +93,3 @@ def split_dataset(image_dir, label_dir, output_dir, val_ratio=0.2, seed=42):
             shutil.copy(os.path.join(label_dir, label_fname), os.path.join(lbl_out, label_fname))
 
         print(f"[INFO] {split.capitalize()} set: {len(splits[split])} images")
-
