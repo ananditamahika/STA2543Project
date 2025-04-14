@@ -40,6 +40,7 @@ class YoloFishDataset(Dataset):
             raise RuntimeError(f"[ERROR] Could not load image: {img_path}")
         image = cv2.resize(image, (self.img_size, self.img_size))
         image = torch.tensor(image, dtype=torch.float32).unsqueeze(0) / 255.0  # [1, H, W]
+        image = image.repeat(3, 1, 1)
 
         # Load label in YOLO format: class x_center y_center width height
         labels = []
