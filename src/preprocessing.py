@@ -103,3 +103,34 @@ def split_dataset(image_dir, label_dir, output_dir, val_ratio=0.2, seed=42):
 
         print(f"[INFO] {split.capitalize()} set: {len(splits[split])} images")
 
+def match_labels_by_basename(label_dir, image_dir, output_label_dir):
+    """
+    Match label files to image files by base filename and copy them to a new folder.
+
+    Args:
+        label_dir (str): Directory with original label .txt files.
+        image_dir (str): Directory with extracted frames (image files).
+        output_label_dir (str): Where to copy the matched .txt files.
+    """
+    os.makedirs(output_label_dir, exist_ok=True)
+
+    image_basenames = {
+        os.path.splitext(f)[0] for f in os.listdir(image_dir)
+        if f.lower().endswith((".jpg", ".png"))
+    }
+
+    label_files = [
+        f for f in os.listdir(label_dir)
+        if f.lower().endswith(".txt") and os.path.splitext(f)[0] in image_basenames
+    ]
+
+    if not label_files:
+        print(f"[WARN] No matched labels found in {label_dir}")
+        return
+
+    for label_file in label_files:
+        src = os.path.join(label_dir, label_file)
+        dst = os.path.join(output_label_dir, label_file)
+        shutil.copy(src, dst)
+
+    print(f"[INFO] Matched and copied {len(label_files)} label files to {output_label_dir}")
