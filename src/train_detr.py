@@ -2,8 +2,8 @@
 
 import torch
 from torch.utils.data import DataLoader
-from src.dataset import YoloFishDataset
-from src.models.detr_builder import build_detr_model
+from dataset import YoloFishDataset
+from models.detr_builder import build_detr_model
 from tqdm import tqdm
 
 def yolo_to_coco_format(yolo_boxes, image_size):
