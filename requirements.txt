@@ -1,0 +1,10 @@
+torch>=2.0.0
+torchvision
+transformers>=4.25.0
+ultralytics>=8.0.0
+opencv-python
+Pillow
+tqdm
+matplotlib
+numpy
+pyyaml
