@@ -11,8 +11,10 @@ def train_detr(
     val_img_dir,
     val_lbl_dir,
     epochs=10,
-    save_path="weights/detr_fish.pth"
+    save_path="weights/detr_ontario.pth",
+    pretrained_weights=None
 ):
+
     print("[DEBUG] Loading datasets...")
     train_dataset = YoloFishDataset(train_img_dir, train_lbl_dir)
     val_dataset = YoloFishDataset(val_img_dir, val_lbl_dir)
@@ -24,11 +26,17 @@ def train_detr(
     val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False, num_workers=2, collate_fn=lambda x: x)
 
     print("[DEBUG] Loading pretrained DETR model...")
-    model = DetrForObjectDetection.from_pretrained(
-        "facebook/detr-resnet-50",
-        num_labels=1,  # 1 class: fish
-        ignore_mismatched_sizes=True
-    )
+    from transformers import DetrForObjectDetection
+
+    if pretrained_weights:
+        print(f"[INFO] Loading DETR base and applying weights from: {pretrained_weights}")
+        model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", num_labels=1, ignore_mismatched_sizes=True)
+        state_dict = torch.load(pretrained_weights, map_location="cpu")
+        model.load_state_dict(state_dict, strict=False)
+    else:
+        print("[INFO] Loading fresh DETR model from HuggingFace...")
+        model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", num_labels=1, ignore_mismatched_sizes=True)
+
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
