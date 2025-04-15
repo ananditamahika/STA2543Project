@@ -42,7 +42,7 @@ STA2543Project/
 ##  Quickstart (Google Colab Demo)
 
 To reproduce these results, use the following Colab notebook:  
- **[Run the notebook here]([https://colab.research.google.com/drive/your-demo-link-here](https://colab.research.google.com/drive/1_9YTcMLis6IeCAAgTZuVTFCOTF7_omZi?usp=sharing))**
+ **[Run the notebook here]([https://colab.research.google.com/drive/1_9YTcMLis6IeCAAgTZuVTFCOTF7_omZi?usp=sharing])**
 
 It walks through:
 
