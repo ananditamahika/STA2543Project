@@ -47,9 +47,8 @@ To reproduce these results, use the following Colab notebook:
 It walks through:
 
 - Downloading and preparing data  
-- Extracting video frames  
-- Training YOLOv8  
-- Pretraining and fine-tuning DETR  
+- Extracting video frames   
+- Pretraining and fine-tuning DETR and YOLOv8 
 
 ---
 
