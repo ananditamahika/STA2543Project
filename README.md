@@ -1,4 +1,4 @@
-# STA2453 Project: Fish Detection from Sonar Video using YOLOv8 and DETR
+# STA2453 Project: Automating Sonar Image Analysis in Ontario Lakes for Fish Counting
 
 This project implements a complete object detection pipeline to identify and localize fish in underwater sonar video footage using both **YOLOv8** and **DETR (DEtection TRansformer)**.
 
